@@ -1,0 +1,150 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+LEVELS = {5: 4, 6: 6, 7: 8, 8: 10}
+ 
+for size, mines in sorted(LEVELS.items()):
+    print(f"Board {size} × {size},  {size * size} cells in total,  {mines} mines")
+import random
+import matplotlib.pyplot as plt      
+
+
+size= random.randint(5, 8)
+mines = LEVELS[size]
+boardTotal = size * size
+minesPlaced = random.sample(range(boardTotal), mines)  
+board = []                                
+                                            
+for i in range(size):
+    horizontal = []
+    for j in range(size):
+        horizontal.append("o")              
+    board.append(horizontal)
+
+Position = []
+for p in minesPlaced:
+    horizontal = p // size             
+    vertical = p % size                
+
+    board[horizontal][vertical] = "*"           
+    Position.append((horizontal, vertical))     
+
+display_board = []
+for i in range(1, size + 1):    
+    display_board.append(["■"] * size) #So we set another list'dis_board' to cover the classboard.
+
+
+def print_board(current_board):                   
+    print(" ")
+    print(f"Size = {size} ( {mines} mines)")
+    print(" ")
+    column = [str(i) for i in range(1, size + 1)] #Turn int into str ,eg:size=5---output:['1','2','3','4','5']
+    print("   " + " ".join(column))                   
+    row = 1                                       
+    for horizontal in current_board:
+        print(f"{row}  " + ' '.join(horizontal))
+        row += 1                                  
+    print(" ")
+
+
+print("size:", size)
+print_board(display_board)    
+def counting_mines(board, hang, lie, size): 
+    count = 0                               
+    
+    for x in [-1, 0, 1]:
+        for y in [-1, 0, 1]:          
+            if x == 0 and y == 0:     
+                continue              
+                
+            h = hang + x
+            l = lie + y               
+            
+            if 0 <= h < size and 0 <= l < size: #Judge if the location really index out the range
+                if board[h][l] == "*":      
+
+                    count += 1                  
+    return count
+steps = 0
+while True:
+    hang = int(input("enter a number for row:")) - 1
+    lie = int(input("enter a number for column:")) - 1
+
+    if hang < 0 or hang >= size or lie < 0 or lie >= size:
+        print("Out of bound! Coordinate outside board.")
+        continue              
+    
+    if display_board[hang][lie] != "■":
+        print("This cell has already been opened! Choose another cell.")
+        continue              
+
+    
+    
+    if (hang,lie) in Position:
+        steps += 1
+        for horizontal, vertical in Position:
+            display_board[horizontal][vertical] = "*"
+        print_board(display_board)
+        print("you lose and total", steps, "steps")
+        break                 
+
+    else:
+        mine_count = counting_mines(board, hang, lie, size)
+        display_board[hang][lie] = str(mine_count)
+        print_board(display_board)
+        steps += 1            
+
+        remain_count = sum(row.count("■") for row in display_board)
+        if remain_count == mines:
+            print_board(display_board)
+            print("congratulation! you win!total: ", steps)
+            break             
+
+def play_one_game(size, mines):                           
+    boardTotal = size * size
+    minesPlaced = random.sample(range(boardTotal), mines)
+    order = list(range(boardTotal))
+    random.shuffle(order)                                
+    steps = 0
+
+    for p in order:
+        steps += 1  
+        if p in minesPlaced:  
+            return steps
+    return steps
+
+
+def death_probability(size, mines, times):              
+    maxStep = size * size - mines + 1                   
+    count = [0] * (maxStep + 1)
+
+    for i in range(times):
+        steps = play_one_game(size, mines)
+        count[steps] = count[steps] + 1
+
+
+    
+    stepsList = []
+    probList = []
+    for k in range(1, maxStep + 1):
+        stepsList.append(k)
+        probList.append(count[k] / times)
+    return stepsList, probList
+
+TIMES = 100000                                          
+colors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]   
+
+for boardSize, color in zip(sorted(LEVELS), colors):
+    mines = LEVELS[boardSize]
+    stepsList, probList = death_probability(boardSize, mines, TIMES)
+
+    print(" ")
+    print(f"board {boardSize} × {boardSize}（{mines} mines），run {TIMES} times")
+    print("Check: sum of probabilities =", round(sum(probList), 4))
+    plt.plot(stepsList, probList, color=color, label=f"{boardSize}×{boardSize} ({mines} mines)")
+                #x-axis -- steps,y-axis -- probability of death and each sizes may have a specific line
+plt.title(f"Death Step Distribution (Simulated {TIMES} Times)")
+plt.xlabel("Step")
+plt.ylabel("Death Probability")
+plt.legend()
+plt.tight_layout()
+plt.show()
